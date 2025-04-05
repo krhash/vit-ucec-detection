@@ -20,5 +20,5 @@ slide_uids.sjon is generated using colab: https://colab.research.google.com/driv
 ``python ./label_preprocessing/map_slide_name_to_type.py``
 
 
-### Output directory: 
+### Model Output directory: 
 out_model

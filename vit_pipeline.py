@@ -228,7 +228,7 @@ if __name__ == "__main__":
     LABEL_PATH = "labels.json"
 
     # Process slides (uncomment to regenerate)
-    SlideProcessor(LABEL_PATH, DATA_DIR).process_slides("UCEC")
+    # SlideProcessor(LABEL_PATH, DATA_DIR).process_slides("UCEC")
 
     # Data transforms
     train_transform = A.Compose([

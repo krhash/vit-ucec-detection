@@ -2,3 +2,5 @@
 /processed_slides/
 /lightning_logs
 /out_model/
+/checkpoints
+/checkpoints_resnet

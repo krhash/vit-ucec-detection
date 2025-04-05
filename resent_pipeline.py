@@ -73,8 +73,8 @@ class ResNetClassifier(pl.LightningModule):
         loss = self.loss_fn(logits, y)
         acc = self.train_acc(logits, y)
         # Log training loss and accuracy at both step and epoch levels
-        self.log('train_loss', loss, prog_bar=False, on_step=True, on_epoch=True)
-        self.log('train_acc', acc, prog_bar=False, on_step=True, on_epoch=True)
+        self.log('train_loss', loss, prog_bar=True, on_step=True, on_epoch=True)
+        self.log('train_acc', acc, prog_bar=True, on_step=True, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -83,8 +83,8 @@ class ResNetClassifier(pl.LightningModule):
         loss = self.loss_fn(logits, y)
         acc = self.val_acc(logits, y)
         # Log validation loss and accuracy at both step and epoch levels
-        self.log('val_loss', loss, prog_bar=False, on_step=True, on_epoch=True)
-        self.log('val_acc', acc, prog_bar=False, on_step=True, on_epoch=True)
+        self.log('val_loss', loss, prog_bar=True, on_step=True, on_epoch=True)
+        self.log('val_acc', acc, prog_bar=True, on_step=True, on_epoch=True)
         return loss
 
     def configure_optimizers(self):
@@ -96,7 +96,7 @@ class ResNetClassifier(pl.LightningModule):
 def main():
     DATA_DIR = "processed_slides"
     BATCH_SIZE = 32
-    EPOCHS = 10
+    EPOCHS = 7
 
     torch.manual_seed(42)
 
@@ -173,14 +173,22 @@ def main():
         devices=1,
         precision='16-mixed',
         callbacks=[checkpoint_cb],
-        enable_progress_bar=False  # Disable progress bar
+        enable_progress_bar=True  # Disable progress bar
     )
 
     model = ResNetClassifier(class_weights=weights)
     trainer.fit(model, train_loader, val_loader)
 
-    torch.save(model.state_dict(), "./out_model/uterine_cancer_resnet34.pth")
-    print("Training complete. Model saved to 'out_model/uterine_cancer_resnet34.pth'.")
+    out_model_dir = "out_model"
+    if not os.path.exists(out_model_dir):
+        os.makedirs(out_model_dir)
+        print(f"Directory '{out_model_dir}' created.")
+    else:
+        print(f"Directory '{out_model_dir}' already exists.")
+
+    # Save the model
+    torch.save(model.state_dict(), os.path.join(out_model_dir, "uterine_cancer_resnet34.pth"))
+    print("\nTraining Complete! Model saved to out_model/uterine_cancer_resnet34.pth")
 
 if __name__ == "__main__":
     main()

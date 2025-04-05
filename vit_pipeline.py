@@ -190,7 +190,7 @@ class ViTClassifier(pl.LightningModule):
         outputs = self(x)
         loss = self.criterion(outputs, y)
         self.train_loss.append(loss.detach())
-        self.log('train_loss', loss, prog_bar=True)
+        self.log('train_loss', loss, prog_bar=False)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -200,12 +200,12 @@ class ViTClassifier(pl.LightningModule):
         acc = (torch.argmax(outputs, 1) == y).float().mean()
         self.val_loss.append(loss)
         self.val_acc.append(acc)
-        self.log('val_loss', loss, prog_bar=True)
+        self.log('val_loss', loss, prog_bar=False)
         return loss
 
     def on_train_epoch_end(self):
         avg_loss = torch.stack(self.train_loss).mean()
-        print(f"\nEpoch {self.current_epoch+1}/10")
+        print(f"\nEpoch {self.current_epoch+1}/7")
         print(f"Train Loss: {avg_loss:.4f}")
         self.train_loss = []
 
@@ -228,7 +228,7 @@ if __name__ == "__main__":
     # Configuration
     DATA_DIR = "processed_slides"
     LABEL_PATH = "labels.json"
-    MAX_EPOCHS = 5
+    MAX_EPOCHS = 7
 
     # Process slides (uncomment to regenerate)
     SlideProcessor(LABEL_PATH, DATA_DIR).process_slides("UCEC")
@@ -322,5 +322,14 @@ if __name__ == "__main__":
         checkpoint_callback.best_model_path,
         class_weights=class_weights
     )
-    torch.save(best_model.state_dict(), "./out_model/uterine_cancer_vit.pth")
-    print("\nTraining Complete! Model saved to ./out_model/uterine_cancer_vit.pth")
+
+    out_model_dir = "out_model"
+    if not os.path.exists(out_model_dir):
+        os.makedirs(out_model_dir)
+        print(f"Directory '{out_model_dir}' created.")
+    else:
+        print(f"Directory '{out_model_dir}' already exists.")
+
+    # Save the model
+    torch.save(best_model.state_dict(), os.path.join(out_model_dir, "uterine_cancer_vit.pth"))
+    print("\nTraining Complete! Model saved to out_model/uterine_cancer_vit.pth")

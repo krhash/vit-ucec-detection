@@ -20,6 +20,7 @@ from sklearn.model_selection import train_test_split
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from skimage.morphology import remove_small_objects, remove_small_holes
+from torchmetrics.classification import MulticlassAccuracy
 
 # Configure image handling
 Image.MAX_IMAGE_PIXELS = None
@@ -134,49 +135,49 @@ class SlideProcessor:
                 f"Slide {slide_id}: Kept {valid_patches}/{total_patches} patches ({(valid_patches / total_patches) * 100:.1f}%)")
 
 
-# Step 2: Optimized Dataset Class
-# -------------------------------
-class CachedHistoDataset(Dataset):
+# 2. Data Pipeline with Size Validation
+# -------------------------------------
+class HistoDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.transform = transform
+        self.classes = ['normal', 'tumor']
         self.samples = []
-
-        # Load preprocessed paths
-        for cls in ['normal', 'tumor']:
+        # Sort files for consistent ordering
+        for cls in self.classes:
             cls_dir = os.path.join(root_dir, cls)
             self.samples += [
-                (os.path.join(cls_dir, f), 0 if cls == 'normal' else 1)
-                for f in os.listdir(cls_dir)
+                (os.path.join(cls_dir, f), self.classes.index(cls))
+                for f in sorted(os.listdir(cls_dir))
                 if f.endswith('.png')
             ]
-
-        # Preload all images into memory (optional)
-        self.cache = [None] * len(self.samples)
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        if self.cache[idx] is None:
+        try:
             img = Image.open(self.samples[idx][0]).convert('RGB')
-            self.cache[idx] = img
+            img = np.array(img)
 
-        img = np.array(self.cache[idx])
+            # Ensure 224x224 input
+            if img.shape[:2] != (224, 224):
+                img = cv2.resize(img, (224, 224))
 
-        if self.transform:
-            img = self.transform(image=img)['image']
+            if self.transform:
+                img = self.transform(image=img)['image']
 
-        return torch.tensor(img).permute(2, 0, 1).float(), self.samples[idx][1]
+            return torch.tensor(img).permute(2, 0, 1).float(), self.samples[idx][1]
+        except Exception as e:
+            print(f"Error loading {self.samples[idx][0]}: {str(e)}")
+            return torch.zeros(3, 224, 224), -1
 
-
-# 3. Enhanced ViT Classifier with Balancing
-# -----------------------------------------
+# VIT Classifier with weight balancing
 class ViTClassifier(pl.LightningModule):
     def __init__(self, class_weights):
         super().__init__()
         self.model = timm.create_model('vit_base_patch16_224',
-                                       pretrained=True,
-                                       num_classes=2)
+                                     pretrained=True,
+                                     num_classes=2)
         self.criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
         self.train_loss = []
         self.val_loss = []
@@ -204,7 +205,7 @@ class ViTClassifier(pl.LightningModule):
 
     def on_train_epoch_end(self):
         avg_loss = torch.stack(self.train_loss).mean()
-        print(f"\nEpoch {self.current_epoch + 1}/10")
+        print(f"\nEpoch {self.current_epoch+1}/10")
         print(f"Train Loss: {avg_loss:.4f}")
         self.train_loss = []
 
@@ -220,15 +221,17 @@ class ViTClassifier(pl.LightningModule):
         return torch.optim.AdamW(self.parameters(), lr=3e-5, weight_decay=0.05)
 
 
+
 # 4. Execution Workflow
 # ---------------------
 if __name__ == "__main__":
     # Configuration
     DATA_DIR = "processed_slides"
     LABEL_PATH = "labels.json"
+    MAX_EPOCHS = 5
 
     # Process slides (uncomment to regenerate)
-    # SlideProcessor(LABEL_PATH, DATA_DIR).process_slides("UCEC")
+    SlideProcessor(LABEL_PATH, DATA_DIR).process_slides("UCEC")
 
     # Data transforms
     train_transform = A.Compose([
@@ -248,7 +251,7 @@ if __name__ == "__main__":
     val_transform = A.Compose([A.Resize(224, 224)])
 
     # Create base dataset for splitting
-    full_dataset = CachedHistoDataset(DATA_DIR)
+    full_dataset = HistoDataset(DATA_DIR)
     full_dataset.samples = [s for s in full_dataset.samples if os.path.getsize(s[0]) > 1024]
 
     # Split indices
@@ -259,8 +262,8 @@ if __name__ == "__main__":
     )
 
     # Create transformed datasets
-    train_dataset = CachedHistoDataset(DATA_DIR, transform=train_transform)
-    val_dataset = CachedHistoDataset(DATA_DIR, transform=val_transform)
+    train_dataset = HistoDataset(DATA_DIR, transform=train_transform)
+    val_dataset = HistoDataset(DATA_DIR, transform=val_transform)
 
     # Calculate class weights from training indices
     train_labels = [full_dataset.samples[i][1] for i in train_idx]
@@ -300,12 +303,12 @@ if __name__ == "__main__":
 
     # Initialize trainer
     trainer = pl.Trainer(
-        max_epochs=5,
+        max_epochs=MAX_EPOCHS,
         accelerator='gpu' if torch.cuda.is_available() else 'auto',
         devices=1,
         precision='16-mixed',
         callbacks=[checkpoint_callback],
-        enable_progress_bar=False,
+        enable_progress_bar=True,
         enable_model_summary=True
     )
 
@@ -319,5 +322,5 @@ if __name__ == "__main__":
         checkpoint_callback.best_model_path,
         class_weights=class_weights
     )
-    torch.save(best_model.state_dict(), "./out_model/par_uterine_cancer_vit.pth")
-    print("\nTraining Complete! Model saved to out_model/par_uterine_cancer_vit.pth")
+    torch.save(best_model.state_dict(), "./out_model/uterine_cancer_vit.pth")
+    print("\nTraining Complete! Model saved to ./out_model/uterine_cancer_vit.pth")

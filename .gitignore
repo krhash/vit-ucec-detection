@@ -4,3 +4,6 @@
 /out_model/
 /checkpoints
 /checkpoints_resnet
+/.ipynb_checkpoints
+/__pycache__
+/checkpoints_efficientnet

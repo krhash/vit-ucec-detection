@@ -86,6 +86,9 @@ class DenseNetClassifier(pl.LightningModule):
         self.train_preds.extend(preds.cpu().numpy())
         self.train_targets.extend(y.cpu().numpy())
         loss = self.loss_fn(logits, y)
+
+        # Log train loss
+        self.log("train_loss", loss, prog_bar=True, on_epoch=True)
         return loss
 
     def on_train_epoch_end(self):
@@ -122,6 +125,9 @@ class DenseNetClassifier(pl.LightningModule):
         self.val_preds.extend(preds.cpu().numpy())
         self.val_targets.extend(y.cpu().numpy())
         loss = self.loss_fn(logits, y)
+
+        # Log val loss
+        self.log("val_loss", loss, prog_bar=True, on_epoch=True)
         return loss
 
     def on_validation_epoch_end(self):

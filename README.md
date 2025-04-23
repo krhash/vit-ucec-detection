@@ -97,7 +97,7 @@ See the [Project Report](./research_report/Project_Report.pdf) for full details.
 If you use this code or data, please cite:
 
 ```text
-Sharma, K.S., Bommireddy, N., Gu, Z. (2023).
+Sharma, K.S., Bommireddy, N., Gu, Z. (2025).
 Pixels to Prognosis: Deep Learning for Uterine Cancer Detection.
 https://github.com/krhash/vit-ucec-detection
 ```

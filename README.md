@@ -1,27 +1,3 @@
-# vit-ucec-detection
-Compare the performance of vision transformer with ResNet for detection of Uterine corpus endometrial carcinoma
-
-
-## Usage:
-
-### Process SVS Slides and Train Vision Transformer
-Note: UCEC directory with SVS files must be present
-
-``python vit_pipeline.py``
-
-
-### Train ResNet CNN model
-### Run VIT Pipeline to process svs slides and save pngs before training resnet
-``python resnet_pipeline.py``
-
-### Preprocess : Slide UID to Slide name mapping using selenium
-slide_uids.sjon is generated using colab: https://colab.research.google.com/drive/1hTa1f8V6SRzCaHQcT5BXbVoGHLFh8nMD#scrollTo=bvlrYBeiTdFC
-
-``python ./label_preprocessing/map_slide_name_to_type.py``
-
-
-### Model Output directory: 
-out_model
 
 # Pixels to Prognosis: Deep Learning for Uterine Cancer Detection
 
@@ -30,6 +6,10 @@ out_model
 ## Overview
 
 This project explores the use of deep learning for automated detection of uterine (endometrial) cancer from histopathology whole slide images (WSIs). We benchmark multiple neural network architectures—including DenseNet, ResNet, EfficientNet, and Vision Transformers (ViT)—and present a robust pipeline for patch extraction, preprocessing, class balancing, and model evaluation.
+
+## Dataset
+Histopathology slides from [CPTAC-UCEC](https://www.cancerimagingarchive.net/collection/cptac-ucec/)
+See the [Project Report](./research_report/Project_Report.pdf) for detailed data description.
 
 ## Key Features
 
